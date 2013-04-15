@@ -1,0 +1,301 @@
+"vim:shiftwidth=4:tabstop=4:expandtab
+
+" When started as "evim", evim.vim will already have done these settings.
+if v:progname =~? "evim"
+  finish
+endif
+
+" Use Vim settings, rather than Vi settings (much better!).
+" This must be first, because it changes other options as a side effect.
+set nocompatible
+
+" allow backspacing over everything in insert mode
+set backspace=indent,eol,start
+
+set nobackup		" do not keep a backup file
+set ruler		" show the cursor position all the time
+set showcmd		" display incomplete commands
+set incsearch		" do incremental searching
+set expandtab
+set autoindent
+set showmatch matchtime=2
+set display=lastline    " show top part of the line if the whole line can't be displayed in the bottom of view
+"set breakat+=，。？！、）】』》
+set linebreak
+set foldmethod=syntax foldopen=all foldlevel=99
+set noswapfile
+set autowriteall
+
+
+" Switch syntax highlighting on, when the terminal has colors
+" Also switch on highlighting the last used search pattern.
+if has('syntax') && (&t_Co > 2 || has("gui_running"))
+   syntax on
+   set hlsearch
+endif
+
+" Color Scheme
+set background=light
+highlight TabLine cterm=NONE
+highlight Pmenu ctermbg=4
+highlight PmenuSel ctermbg=5
+highlight MatchParen ctermfg=0
+highlight DiffAdd ctermfg=0
+highlight DiffChange ctermfg=0
+highlight DiffDelete ctermfg=0
+highlight DiffText ctermfg=7
+
+set formatoptions+=mMB
+set fileencodings=ucs-bom,utf-8,gbk,gb18030
+set statusline=%<%f\ %h%m%r%=%k[%{(&fenc==\"\")?&enc:&fenc}%{(&bomb?\",BOM\":\"\")}]\ %-14.(%l,%c%V%)\ %P
+
+if has('mouse')
+    set mouse=a
+endif
+
+if has('multi_byte') && v:version > 601
+    if v:lang =~? '^\(zh\)\|\(ja\)\|\(ko\)'
+        set ambiwidth=double
+    endif
+endif
+
+" Key mappings to ease browsing long lines
+noremap  <C-J>       gj
+noremap  <C-K>       gk
+noremap  <Down>      gj
+noremap  <Up>        gk
+inoremap <Down> <C-O>gj
+inoremap <Up>   <C-O>gk
+
+" Key mappings to switch among tabs
+:nmap <M-1> 1gt
+:nmap <M-2> 2gt
+:nmap <M-3> 3gt
+:nmap <M-4> 4gt
+:nmap <M-5> 5gt
+:nmap <C-tab>     :tabnext<CR>
+:nmap <C-S-tab>   :tabprevious<CR>
+:nmap <C-w>       :tabc<CR>
+:nmap <C-t>       :tabnew<CR>
+
+" Key mappings for quick arithmetic inside Vim
+nnoremap <silent> <Leader>ma yypV:!calcu '<C-R>"'<CR>k$
+vnoremap <silent> <Leader>ma yo<ESC>pV:!calcu '<C-R>"'<CR>k$
+nnoremap <silent> <Leader>mr yyV:!calcu '<C-R>"'<CR>$
+vnoremap <silent> <Leader>mr ygvmaomb:r !calcu '<C-R>"'<CR>"ay$dd`bv`a"ap
+
+" Key mapping to stop the search highlight
+nmap <silent> <F2>      :nohlsearch<CR>
+imap <silent> <F2> <C-O>:nohlsearch<CR>
+
+" Input date
+nmap <silent> <F5>      :r!date +"\%F \%R"<CR>
+imap <silent> <F5> <C-O>:r!date +"\%F \%R"<CR>
+
+" Key mapping for the taglist.vim plugin
+nmap <F9>      :Tlist<CR>
+imap <F9> <C-O>:Tlist<CR>
+
+" Key mappings for the quickfix commands
+nmap <F11> :cn<CR>
+nmap <F12> :cp<CR>
+" Don't use Ex mode, use Q for formatting
+map Q gq
+
+" CTRL-U in insert mode deletes a lot.  Use CTRL-G u to first break undo,
+" so that you can undo CTRL-U after inserting a line break.
+" inoremap <C-U> <C-G>u<C-U>
+
+
+" GUI related settings
+if has('gui_running')
+    let do_syntax_sel_menu=1
+    if $LANG !~ '\.'
+
+            set encoding=utf-8
+    endif
+else " Non-GUI settings
+        " Do not increase the windows width in the taglist.vim plugin
+        if has('eval')
+                let Tlist_Inc_Winwidth=0
+        endif
+
+        " Set text-mode menu
+        if has('wildmenu')
+                set wildmenu
+                set cpoptions-=<
+                set wildcharm=<C-Z>
+                nmap <F10>      :emenu <C-Z>
+
+                imap <F10> <C-O>:emenu <C-Z>
+        endif
+endif
+
+" Convenient command to see the difference between the current buffer and the
+" file it was loaded from, thus the changes you made.
+" Only define it when not defined already.
+if !exists(":DiffOrig")
+  command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
+		  \ | wincmd p | diffthis
+endif
+
+" Only do this part when compiled with support for autocommands.
+if has("autocmd")
+
+    " Enable file type detection.
+    " Use the default filetype settings, so that mail gets 'tw' set to 72,
+    " 'cindent' is on in C files, etc.
+    " Also load indent files, to automatically do language-dependent indenting.
+    filetype plugin indent on
+    filetype plugin on
+
+    " Put these in an autocmd group, so that we can delete them easily.
+    augroup vimrcEx
+    autocmd!
+
+    " When editing a file, always jump to the last known cursor position.
+    " Don't do it when the position is invalid or when inside an event handler
+    " (happens when dropping a file on gvim).
+    " Also don't do it when the mark is in the first line, that is the default
+    " position when opening a file.
+    autocmd BufReadPost *
+        \ if line("'\"") > 1 && line("'\"") <= line("$") |
+        \   exe "normal! g`\"" |
+        \ endif
+
+    " Mark .asm files MASM-type assembly
+    autocmd BufNewFile,BufReadPre *.asm let b:asmsyntax='masm'
+
+
+    " Highlight space errors in C/C++ source files (Vim tip #935)
+    if $VIM_HATE_SPACE_ERRORS != '0'
+        let c_space_errors=1
+    endif
+
+    " Use Canadian spelling convention in engspchk (Vim script #195)
+    let spchkdialect='can'
+
+    " Show syntax highlighting attributes of character under cursor (Vim script #383)
+    map <Leader>a :call SyntaxAttr()<CR>
+
+    " Automatically find scripts in the autoload directory
+    autocmd FuncUndefined * execute 'runtime autoload/' . expand('<afile>') . '.vim'
+
+    " Highlight current Line
+    autocmd InsertLeave * se nocul
+    autocmd InsertEnter * se cul
+
+    " File type related autosetting
+    autocmd FileType c,cpp setlocal cinoptions=:0,g0,(0,w1 shiftwidth=4 tabstop=4 softtabstop=4
+    autocmd FileType c,cpp,h set nolinebreak
+    autocmd FileType sh,diff  setlocal shiftwidth=4 tabstop=4
+    autocmd FileType tex  setlocal shiftwidth=4 tabstop=4 softtabstop=4
+    autocmd FileType html  setlocal autoindent indentexpr=
+    autocmd FileType changelog setlocal textwidth=76
+
+    " Insert file header automatically related to file type
+    " for c,cpp,h files
+    autocmd bufnewfile *.c,*.cpp,*.h so /home/isaac/templates/headers/c_header.txt
+    autocmd bufnewfile *.c,*.cpp,*.h exe "1," . 10 . "g/File Name :.*/s//File Name : " .expand("%")
+    autocmd bufnewfile *.c,*.cpp,*.h exe "1," . 10 . "g/Creation Date :.*/s//Creation Date : " .strftime("%d-%m-%Y")
+    autocmd Bufwritepre,filewritepre *.c,*.cpp,*.h execute "normal ma"
+    autocmd Bufwritepre,filewritepre *.c,*.cpp,*.h exe "1," . 10 . "g/Last Modified :.*/s/Last Modified :.*/Last Modified : " .strftime("%c")
+    autocmd bufwritepost,filewritepost *.c,*.cpp,*.h execute "normal `a"
+    " makefiles for c&c++
+    autocmd bufnewfile makefile,Makefile,gcc.mk so /home/isaac/templates/makefiles/gcc.mk
+    autocmd bufnewfile makefile,Makefile,gcc.mk exe "1," . 10 . "g/File Name :.*/s//File Name : " .expand("%")
+    autocmd bufnewfile makefile,Makefile,gcc.mk exe "1," . 10 . "g/Creation Date :.*/s//Creation Date : " .strftime("%d-%m-%Y")
+    autocmd Bufwritepre,filewritepre makefile,Makefile,gcc.mk execute "normal ma"
+    autocmd Bufwritepre,filewritepre makefile,Makefile,gcc.mk exe "1," . 10 . "g/Last Modified :.*/s/Last Modified :.*/Last Modified : " .strftime("%c")
+    autocmd bufwritepost,filewritepost makefile,Makefile,gcc.mk execute "normal `a"
+    " makefiles for latex
+    autocmd bufnewfile latex.mk so  /home/isaac/templates/makefiles/latex.mk
+
+    " Text file encoding autodetection
+    function! SetFileEncodings(encodings)
+        let b:my_fileencodings_bak=&fileencodings
+        let &fileencodings=a:encodings
+    endfunction
+    autocmd BufReadPre  *.gb               call SetFileEncodings('gbk')
+    autocmd BufReadPre  *.big5             call SetFileEncodings('big5')
+    autocmd BufReadPre  *.nfo              call SetFileEncodings('cp437')
+
+    function! RestoreFileEncodings()
+        let &fileencodings=b:my_fileencodings_bak
+        unlet b:my_fileencodings_bak
+    endfunction
+    autocmd BufReadPost *.gb,*.big5,*.nfo  call RestoreFileEncodings()
+
+    function! CheckFileEncoding()
+        if &modified && &fileencoding != ''
+            execute 'e! ++enc=' . &fileencoding
+        endif
+    endfunction
+    autocmd BufWinEnter *.txt              call CheckFileEncoding()
+
+    " Detect charset encoding in an HTML file
+    function! ConvertHtmlEncoding(encoding)
+        if a:encoding ==? 'gb2312'
+            return 'gbk'              " GB2312 imprecisely means GBK in HTML
+        elseif a:encoding ==? 'iso-8859-1'
+            return 'latin1'           " The canonical encoding name in Vim
+        elseif a:encoding ==? 'utf8'
+            return 'utf-8'            " Other encoding aliases should follow here
+        else
+            return a:encoding
+        endif
+    endfunction
+
+    function! DetectHtmlEncoding()
+        if &filetype != 'html'
+            return
+        endif
+        normal m`
+        normal gg
+        if search('\c<meta http-equiv=\("\?\)Content-Type\1 content="text/html; charset=[-A-Za-z0-9_]\+">') != 0
+            let reg_bak=@"
+            normal y$
+            let charset=matchstr(@", 'text/html; charset=\zs[-A-Za-z0-9_]\+')
+            let charset=ConvertHtmlEncoding(charset)
+            normal ``
+            let @"=reg_bak
+            if &fileencodings == ''
+              let auto_encodings=',' . &encoding . ','
+            else
+              let auto_encodings=',' . &fileencodings . ','
+            endif
+            if charset !=? &fileencoding &&
+               \(auto_encodings =~ ',' . &fileencoding . ',' || &fileencoding == '')
+              silent! execute 'e ++enc=' . charset
+            endif
+        else
+            normal ``
+        endif
+    endfunction
+    autocmd BufReadPost *.htm* nested      call DetectHtmlEncoding()
+
+    " Recognize standard C++ headers
+    autocmd BufEnter /usr/include/c++/*    setfiletype cpp
+    autocmd BufEnter /usr/include/g++-3/*  setfiletype cpp
+
+    " Setting for files following the GNU coding standard
+    function! GnuIndent()
+        setlocal cinoptions=>4,n-2,{2,^-2,:2,=2,g0,h2,p5,t0,+2,(0,u0,w1,m1
+        setlocal shiftwidth=2
+        setlocal tabstop=8
+    endfunction
+    autocmd BufEnter /usr/*                call GnuIndent()
+
+    " Remove trailing spaces for C/C++ and Vim files
+    function! RemoveTrailingSpace()
+        if $VIM_HATE_SPACE_ERRORS != '0' &&
+                \(&filetype == 'c' || &filetype == 'cpp' || &filetype == 'vim')
+            normal m`
+            silent! :%s/\s\+$//e
+            normal ``
+        endif
+    endfunction
+    autocmd BufWritePre *                  call RemoveTrailingSpace()
+
+    augroup END
+endif " has("autocmd")
